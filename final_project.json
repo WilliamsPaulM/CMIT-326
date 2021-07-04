@@ -1,0 +1,314 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "CMIT-326: Final Project - Proof of Concept - Deploy VPC with Simple Web App - by Paul Williams",
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": { "default": "Lab VPC Configuration" },
+          "Parameters": [ "VPCName" ]
+        },
+        {
+          "Label": { "default": "Lab VPC: Subnet Configuration" },
+          "Parameters": [ "Public1Name", "Private1Name","Public2Name", "Private2Name" ]
+        },
+        {
+          "Label": { "default": "Lab VPC: Route Table Configuration" },
+          "Parameters": [ "PublicRouteTableName", "PrivateRouteTableName" ]
+        },
+        {
+          "Label": { "default": "Lab VPC: Security Group Configuration" },
+          "Parameters": [ "WebSecurityGroupName", "WebSecurityGroupDescription" ]
+        },
+        {
+          "Label": { "default": "Lab VPC: EC2 Configuration" },
+          "Parameters": [ "WebInstanceName", "WebInstanceType" ]
+        }
+      ],
+      "ParameterLabels": {
+        "VPCName": { "default": "VPC Name:" },
+        "Public1Name": { "default": "1st Public Subnet Name:" },
+        "Private1Name": { "default": "1st Private Subnet Name:" },
+        "Public2Name": { "default": "2nd Public Subnet Name:" },
+        "Private2Name": { "default": "2nd Private Subnet Name:" },
+        "PublicRouteTableName": { "default": "Public Route Table Name:" },
+        "PrivateRouteTableName": { "default": "Private Route Table Name:" },
+        "WebSecurityGroupName": { "default": "Web Security Group Name:" },
+        "WebSecurityGroupDescription": { "default": "Web Security Group Description:" },
+        "WebInstanceName": { "default": "Web Instance Name:" },
+        "WebInstanceType": { "default": "Web Instance Type:" }
+      }
+    }
+  },
+  "Parameters": {
+    "VPCName": {
+      "Description": "The name for the vpc",
+      "Type": "String",
+      "Default": "Lab VPC"
+    },
+    "Public1Name": {
+      "Description": "The name for the first public subnet",
+      "Type": "String",
+      "Default": "Public Subnet 1"
+    },
+    "Public2Name": {
+      "Description": "The name for the second public subnet",
+      "Type": "String",
+      "Default": "Public Subnet 2"
+    },
+    "Private1Name": {
+      "Description": "The name for the first private subnet",
+      "Type": "String",
+      "Default": "Private Subnet 1"
+    },
+    "Private2Name": {
+      "Description": "The name for the second private subnet",
+      "Type": "String",
+      "Default": "Private Subnet 2"
+    },
+    "PublicRouteTableName": {
+      "Description": "The name for the public route table",
+      "Type": "String",
+      "Default": "Public Route Table"
+    },
+    "PrivateRouteTableName": {
+      "Description": "The name for the private route table",
+      "Type": "String",
+      "Default": "Private Route Table"
+    },
+    "WebSecurityGroupName": {
+      "Description": "The name for web security group",
+      "Type": "String",
+      "Default": "Web Security Group"
+    },
+    "WebSecurityGroupDescription": {
+      "Description": "The description for web security group",
+      "Type": "String",
+      "Default": "Enable HTTP access"
+    },
+    "WebInstanceName": {
+      "Description": "The name for web ec2 instance",
+      "Type": "String",
+      "Default": "Web Server 1"
+    },
+    "WebInstanceType": {
+      "Description": "WebServer EC2 instance type",
+      "Type": "String",
+      "Default": "t2.micro",
+      "AllowedValues": [ "t2.micro" ],
+      "ConstraintDescription": "must be a t2.micro"
+    }
+  },
+  "Mappings": {
+    "Environment": {
+      "Lab": {
+        "FileLocationComment": "Provided by Vocareum - Lab 2: Build your VPC and Launch a Web Server", 
+        "FileLocation": "https://aws-tc-largeobjects.s3.amazonaws.com/AWS-TC-AcademyACF/acf-lab3-vpc/lab-app.zip",
+        "KeyNameComment": "Matches the lab environment provided by Vocareum; adjust to your needs",
+        "KeyName": "vockey",
+        "AMIComment": "Latest available Amazon Linux 2 at the time of writing",
+        "AMI": "ami-0ab4d1e9cf9a1215a"
+      }
+    }
+  },
+  "Resources": {
+    "VPC": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": "10.0.0.0/16",
+        "Tags": [
+          {"Key": "Name", "Value": { "Ref": "VPCName"} },
+          {"Key": "Application", "Value": { "Ref": "AWS::StackId"} } 
+        ]
+      }
+    },
+    "Public1": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": { "Ref": "VPC" },
+        "CidrBlock": "10.0.0.0/24",
+        "Tags": [
+          {"Key": "Name", "Value": { "Ref": "Public1Name"} },
+          {"Key": "Application", "Value": { "Ref": "AWS::StackId"} } 
+        ]
+      }
+    },
+    "Public2": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": { "Ref": "VPC" },
+        "CidrBlock": "10.0.2.0/24",
+        "Tags": [
+          {"Key": "Name", "Value": { "Ref": "Public2Name"} },
+          {"Key": "Application", "Value": { "Ref": "AWS::StackId"} } 
+        ]
+      }
+    },
+    "Private1": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": { "Ref": "VPC" },
+        "CidrBlock": "10.0.1.0/24",
+        "Tags": [
+          {"Key": "Name", "Value": { "Ref": "Private1Name"} },
+          {"Key": "Application", "Value": { "Ref": "AWS::StackId"} } 
+        ]
+      }
+    },
+    "Private2": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": { "Ref": "VPC" },
+        "CidrBlock": "10.0.3.0/24",
+        "Tags": [
+          {"Key": "Name", "Value": { "Ref": "Private2Name"} },
+          {"Key": "Application", "Value": { "Ref": "AWS::StackId"} } 
+        ]
+      }
+    },
+    "InternetGateway": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [ {"Key": "Application", "Value": { "Ref": "AWS::StackId"} } ]
+      }
+    },
+    "AttachGateway": {
+       "Type": "AWS::EC2::VPCGatewayAttachment",
+       "Properties": {
+         "VpcId": { "Ref": "VPC" },
+         "InternetGatewayId": { "Ref": "InternetGateway" }
+       }
+    },
+    "PublicRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {"Ref": "VPC"},
+        "Tags": [
+          {"Key": "Name", "Value": { "Ref": "PublicRouteTableName"} },
+          {"Key": "Application", "Value": { "Ref": "AWS::StackId"} } 
+        ]
+      }
+    },
+    "PublicRoute": {
+      "Type": "AWS::EC2::Route",
+      "DependsOn": "AttachGateway",
+      "Properties": {
+        "RouteTableId": { "Ref": "PublicRouteTable" },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": { "Ref": "InternetGateway" }
+      }
+    },
+    "NATGateway": {
+      "Type": "AWS::EC2::NatGateway",
+      "Properties": {
+         "AllocationId": { "Fn::GetAtt": ["EIP", "AllocationId"]},
+         "SubnetId": { "Ref": "Public1"},
+         "Tags": [ {"Key": "Application", "Value": { "Ref": "AWS::StackId"} } ]
+        }
+    },
+    "EIP": {
+        "DependsOn": "AttachGateway",
+        "Type": "AWS::EC2::EIP",
+        "Properties": {
+          "Domain": "vpc"
+        }
+    },
+    "PrivateRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {"Ref": "VPC"},
+        "Tags": [
+          {"Key": "Name", "Value": { "Ref": "PrivateRouteTableName"} },
+          {"Key": "Application", "Value": { "Ref": "AWS::StackId"} } 
+        ]
+      }
+    },
+    "PrivateRoute": {
+        "Type": "AWS::EC2::Route",
+        "Properties": {
+          "RouteTableId": { "Ref": "PrivateRouteTable" },
+          "DestinationCidrBlock": "0.0.0.0/0",
+          "NatGatewayId": { "Ref": "NATGateway" }
+        }
+    },
+    "Public1SubnetRouteTableAssociation": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": { "Ref": "Public1" },
+        "RouteTableId": { "Ref": "PublicRouteTable" }
+      }
+    },
+    "Public2SubnetRouteTableAssociation": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": { "Ref": "Public2" },
+        "RouteTableId": { "Ref": "PublicRouteTable" }
+      }
+    },
+    "Private1SubnetRouteTableAssociation": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": { "Ref": "Private1" },
+        "RouteTableId": { "Ref": "PrivateRouteTable" }
+      }
+    },
+    "Private2SubnetRouteTableAssociation": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": { "Ref": "Private2" },
+        "RouteTableId": { "Ref": "PrivateRouteTable" }
+      }
+    },
+    "WebSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": { "Ref": "VPC" },
+        "GroupDescription": { "Ref": "WebSecurityGroupDescription"} ,
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 80,
+            "ToPort": 80,
+            "CidrIp": "0.0.0.0/0",
+            "Description": "Permit web requests"
+          }
+        ],
+        "Tags": [
+          {"Key": "Name", "Value": { "Ref": "WebSecurityGroupName"} },
+          {"Key": "Application", "Value": { "Ref": "AWS::StackId"} } 
+        ]
+      }
+    },
+    "WebServerInstance": {
+      "Type": "AWS::EC2::Instance",
+      "DependsOn": "AttachGateway",
+      "Properties": {
+        "ImageId": { "Fn::FindInMap": [ "Environment", "Lab", "AMI"] },
+        "InstanceType": { "Ref": "WebInstanceType" },
+        "KeyName": { "Fn::FindInMap": [ "Environment", "Lab", "KeyName"] },
+        "Tags": [
+          {"Key": "Name", "Value": { "Ref": "WebInstanceName"} },
+          {"Key": "Application", "Value": { "Ref": "AWS::StackId"} } 
+        ],
+        "NetworkInterfaces": [{
+          "GroupSet": [{ "Ref": "WebSecurityGroup" }],
+          "AssociatePublicIpAddress": true,
+          "DeviceIndex": "0",
+          "DeleteOnTermination": true,
+          "SubnetId": { "Ref": "Public2" }
+        }],
+        "UserData": { "Fn::Base64": { "Fn::Join": ["", [
+             "#!/bin/bash -xe\n",
+             "# Install Apache Web Server and PHP\n",
+             "yum install -y httpd mysql php\n",
+             "# Download Lab FileLocation\n",
+             "wget  ", { "Fn::FindInMap": [ "Environment", "Lab", "FileLocation"] }, "\n",
+             "unzip lab-app.zip -d /var/www/html/\n",
+             "# Turn on web server\n",
+             "chkconfig httpd on\n",
+             "service httpd start\n"
+        ]]}}
+      }
+    }
+  }
+}
